@@ -1,0 +1,449 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>L&M Pré-Processamento</title>
+
+    <link rel="stylesheet" href="assets/css/sistema.css">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons/font/bootstrap-icons.css">
+
+    <script src="https://unpkg.com/petite-vue" defer></script>
+    <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.0/Sortable.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+
+<body class="d-flex flex-column min-vh-100" v-scope="{ ...app }">
+
+    <!-- menu lateral -->
+
+    <aside class="offcanvas offcanvas-start" tabindex="-1" id="offcanvasMenu" aria-labelledby="offcanvasMenuLabel">
+        <div class="d-flex justify-content-between align-items-center">
+            <button @click="novoProcesso" class="btn btn-success px-4 d-flex align-items-center ms-3 mb-2 mt-1 gap-2"
+                title="Começar um novo processo">
+                <i class="bi bi-file-earmark-plus fs-6"></i>
+                <span class="fw-medium">Novo Processo</span>
+            </button>
+            <button type="button" class="btn-close text-reset" data-bs-dismiss="offcanvas" aria-label="Fechar"></button>
+        </div>
+        <div class="offcanvas-header">
+            <h2 class="h6 sidebar-title mb-0">Últimos processos</h2>
+        </div>
+        <div class="offcanvas-body">
+            <!-- barra de pesquisa com ícone -->
+            <div class="mb-3 input-group">
+                <input type="text" v-model="searchQuery" class="form-control" placeholder="Buscar processos..."
+                    @input="buscarProcessos">
+                <span class="input-group-text">
+                    <i class="bi bi-search"></i>
+                </span>
+            </div>
+            <nav class="list-group">
+                <div v-for="proc in ultimosProcessos" :key="proc.id"
+                    class="sidebar-list-item d-flex justify-content-between align-items-center mb-2"
+                    :class="{ 'active': proc.id === processoAtualId }">
+
+                    <div class="flex-grow-1 text-start">
+                        <span @click="carregarProcesso(proc.id)" style="cursor: pointer; display: block; width: 100%;"
+                            class="text-white">
+                            {{ proc.nome }}
+                        </span>
+                    </div>
+
+                    <div class="dropdown" @click.stop>
+                        <a class="text-white" href="#" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                            <i class="bi bi-three-dots"></i>
+                        </a>
+                        <ul class="dropdown-menu dropdown-menu-end custom-dropdown-menu">
+                            <li>
+                                <button class="dropdown-item" @click.stop="renomearProcesso(proc.id, proc.nome)">
+                                    <i class="bi bi-pencil-square me-2"></i>
+                                    Renomear
+                                </button>
+                            </li>
+
+                            <li>
+                                <button class="dropdown-item text-danger" @click.stop="excluirProcesso(proc.id)">
+                                    <i class="bi bi-trash me-2"></i>
+                                    Excluir
+                                </button>
+                            </li>
+                        </ul>
+                    </div>
+                </div>
+                <div v-if="ultimosProcessos.length === 0" class="text-center mt-3">
+                    Nenhum processo encontrado.
+                </div>
+            </nav>
+        </div>
+    </aside>
+
+    <!-- cabeçalho -->
+
+    <header class="header d-flex align-items-center p-3 border-bottom" :class="{ 'sem-botao': !isLoggedIn }">
+        <button v-show="isLoggedIn" class="btn btn-link text-dark p-0 me-3" type="button" data-bs-toggle="offcanvas"
+            data-bs-target="#offcanvasMenu" aria-controls="offcanvasMenu">
+            <i class="bi bi-list botao-menu fs-3"></i>
+        </button>
+        <h1 class="h5 mb-0 text-secondary flex-grow-1 titulo">
+            <a href="index.html">L&M Pré-Processamento Textual</a>
+        </h1>
+        <div class="d-flex align-items-center">
+            <template v-if="isLoggedIn">
+                <div class="dropdown">
+                    <button class="btn btn-outline-secondary dropdown-toggle btn-custom" type="button"
+                        data-bs-toggle="dropdown" aria-expanded="false">
+                        <i class="bi bi-person-circle me-1"></i> <span v-text="usuarioNome"></span>
+                    </button>
+                    <ul class="dropdown-menu dropdown-menu-end custom-dropdown-menu">
+                        <li><a class="dropdown-item" href="usuario.html">
+                                <i class="bi bi-person-vcard me-2"></i> Perfil
+                            </a></li>
+                        <li><button class="dropdown-item text-danger" @click="logout">
+                                <i class="bi bi-box-arrow-right me-2"></i> Sair
+                            </button></li>
+                    </ul>
+                </div>
+            </template>
+            <template v-else>
+                <a href="login.html" class="btn btn-outline-secondary btn-custom me-2">Login / Cadastro</a>
+            </template>
+        </div>
+    </header>
+
+    <!-- conteúdo principal -->
+
+    <main class="flex-grow-1 container py-4">
+
+        <section class="informacoesProcesso" v-if="processoAtualNome">
+            <div class="text-center">
+                <h2 class="text-center mb-4 mt-1">Processo atual: <span v-text="processoAtualNome"></span></h2>
+            </div>
+        </section>
+
+        <!-- upload -->
+
+        <section class="content-box mb-4 uploadtexto">
+            <h2 class="h4 mb-3">Faça o upload do seu texto aqui:</h2>
+            <div class="drop-zone" @click="triggerFileInput" @dragover.prevent @drop="handleDrop">
+                <p class="mb-0">Arraste um arquivo .txt aqui ou clique para selecionar</p>
+                <input type="file" ref="fileInput" class="d-none" @change="handleFileChange" accept=".txt" multiple>
+            </div>
+            <textarea v-model="texto" rows="6" class="form-control mt-3 areatexto"
+                placeholder="Digite seu texto aqui"></textarea>
+        </section>
+
+        <!-- etapas e ordem -->
+
+        <section class="row etapas-ordem">
+            <article class="content-box">
+                <h3 class="h5 mb-3 titulo">Etapas Disponíveis</h3>
+                <div v-for="etapa in etapas" :key="etapa.id" class="mb-2">
+                    <button class="btn btn-outline-primary btn-sm botoes-etapas" @click="adicionarEtapa(etapa)">
+                        + {{ etapa.nome }}
+                    </button>
+                </div>
+            </article>
+
+            <article class="content-box">
+                <h3 class="h5 mb-3 titulo">Ordem de Execução (Clique e arraste)</h3>
+                <div id="lista-processos" class="mb-3">
+                    <div v-for="(etapa, index) in ordemExecucao" :key="index" class="processo-card"
+                        :class="{'processo-card-ranking': etapa.id === 'ranking'}">
+                        <button class="btn-remove" @click="removerEtapa(index)">❌</button>
+                        <strong>{{ etapa.nome }}</strong>
+                        <div v-if="etapa.id === 'ranking'" class="mt-2 d-flex align-items-center flex-wrap gap-2">
+                            <label for="limite" class="mb-0">Máx. Palavras:</label>
+                            <input id="limite" type="number" v-model.number="etapa.limite" class="form-control"
+                                style="width: 80px; display: inline-block;">
+                            <div>
+                                <label for="grafico" class="mb-0">Gráfico:</label>
+                                <select id="grafico" v-model="etapa.grafico" class="form-select"
+                                    style="width: 120px; display: inline-block;">
+                                    <option value="">Nenhum</option>
+                                    <option value="bar">Barras</option>
+                                    <option value="nuvem">Nuvem de palavras</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </article>
+        </section>
+
+        <!-- ações -->
+
+        <div class="d-flex gap-2 botoes-funcoes">
+            <button @click="usarExemplo" class="btn btn-secondary">
+                <i class="bi bi-file-earmark-text"></i> Usar Exemplo
+            </button>
+            <button @click="processarTexto" class="btn btn-success">
+                <i class="bi bi-arrow-clockwise"></i> Processar
+            </button>
+        </div>
+
+        <!-- resultados -->
+
+        <section class="section-resultados">
+            <h2 class="h4 mt-2 mb-4" v-if="resultadosEtapas.length > 0">Resultados</h2>
+            <div class="resultados-container">
+                <article v-for="(res, index) in resultadosEtapas" :key="index"
+                    class="border p-3 mb-4 bg-light resultados" :id="'resultado-' + index">
+                    <div class="d-flex flex-row justify-content-between align-items-center">
+                        <h3 class="h5 m-0">
+                            {{ res.etapa }}
+                            <template v-if="res.etapa === 'Ranking de palavras' && res.tipo_grafico">
+                                — gráfico de
+                                <span>
+                                    {{
+                                    res.tipo_grafico === 'bar' ? 'barras' :
+                                    res.tipo_grafico === 'nuvem' ? 'nuvem de palavras' :
+                                    res.tipo_grafico
+                                    }}
+                                </span>
+                            </template>
+                        </h3>
+                        <div class="etapas-botoes">
+                            <div>
+                                <button class="btn btn-sm btn-outline-secondary excluir-etapa"
+                                    @click="copiarResultado(res)">
+                                    <i class="bi bi-clipboard"></i>
+                                    Copiar
+                                </button>
+                            </div>
+                            <div class="dropdown">
+                                <button class="btn btn-sm btn-outline-secondary" type="button" data-bs-toggle="dropdown"
+                                    aria-expanded="false" style="border: none;"> <i class="bi bi-three-dots"></i>
+                                </button>
+                                <ul class="dropdown-menu dropdown-menu-end custom-dropdown-menu">
+                                    <li>
+                                        <button class="dropdown-item" @click="exibirEstatisticas(res)">
+                                            <i class="bi bi-info-square me-2"></i>
+                                            Estatísticas
+                                        </button>
+                                    </li>
+                                    <li>
+                                        <button class="dropdown-item" @click="baixarResultado(res)">
+                                            <i class="bi bi-download me-2"></i>
+                                            Fazer download .txt
+                                        </button>
+                                    </li>
+                                    <li>
+                                        <button class="dropdown-item" @click="exportarPDF(res, index)">
+                                            <i class="bi bi-file-earmark-pdf me-2"></i>
+                                            Exportar para PDF
+                                        </button>
+                                    </li>
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="conteudo-rolavel">
+                        <pre>{{ res.texto }}</pre>
+                    </div>
+                </article>
+            </div>
+        </section>
+
+        <div class="d-flex gap-2 botoes-funcoes" v-if="resultadosEtapas.length > 0">
+            <div class="dropdown">
+                <button class="btn btn-success dropdown-toggle" type="button" id="dropdownSalvar"
+                    data-bs-toggle="dropdown" aria-expanded="false">
+                    <i class="bi bi-floppy me-2"></i>Salvar
+                </button>
+                <ul class="dropdown-menu dropdown-menu-end custom-dropdown-menu">
+                    <li>
+                        <button class="dropdown-item etapas-opcoes" @click="salvarComoNovo">
+                            <i class="bi bi-file-earmark-plus me-2"></i>Salvar como novo
+                        </button>
+                    </li>
+                    <li v-if="processoAtualId">
+                        <button class="dropdown-item etapas-opcoes" @click="atualizarProcesso">
+                            <i class="bi bi-arrow-clockwise me-2"></i>Atualizar processo atual
+                        </button>
+                    </li>
+                </ul>
+            </div>
+
+            <div class="dropdown">
+                <button class="btn btn-secondary dropdown-toggle" type="button" id="dropdownDownload"
+                    data-bs-toggle="dropdown" aria-expanded="false">
+                    <i class="bi bi-download me-2"></i>Download
+                </button>
+                <ul class="dropdown-menu dropdown-menu-end custom-dropdown-menu">
+                    <li>
+                        <button class="dropdown-item etapas-opcoes" @click="baixarProcesso">
+                            <i class="bi bi-filetype-txt me-2"></i>
+                            Fazer download .txt
+                        </button>
+                    </li>
+                    <li>
+                        <button class="dropdown-item etapas-opcoes" @click="exportarProcessoPDF">
+                            <i class="bi bi-file-earmark-pdf me-2"></i>
+                            Exportar para PDF
+                        </button>
+                    </li>
+                </ul>
+            </div>
+        </div>
+
+        <!-- estatísticas -->
+        <div class="modal fade" id="statsModal" tabindex="-1" aria-labelledby="statsModalLabel" aria-hidden="true">
+            <div class="modal-dialog modal-dialog-centered">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title" id="statsModalLabel">
+                            Estatísticas da Etapa:
+                            <span class="fw-bold" v-text="statsEtapaAtual?.etapa || '—'"></span>
+                        </h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fechar"></button>
+                    </div>
+
+                    <div class="modal-body estatistica" v-if="statsResultados">
+                        <table class="table table-bordered table-sm tabela">
+                            <tbody>
+                                <tr>
+                                    <td class="fw-semibold">Caracteres (com espaço):</td>
+                                    <td class="text-end">{{ statsResultados.charsComEspaco }}</td>
+                                </tr>
+                                <tr>
+                                    <td class="fw-semibold">Caracteres (sem espaço):</td>
+                                    <td class="text-end">{{ statsResultados.charsSemEspaco }}</td>
+                                </tr>
+                                <tr>
+                                    <td class="fw-semibold">Palavras:</td>
+                                    <td class="text-end">{{ statsResultados.contagemPalavras }}</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+
+                    <div class="modal-body text-center text-muted" v-else>
+                        <p>Nenhum dado disponível.</p>
+                    </div>
+
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Fechar</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- modal salvar processo -->
+        <div class="modal fade" id="modalSalvar" tabindex="-1" aria-labelledby="modalSalvarLabel" aria-hidden="true">
+            <div class="modal-dialog modal-dialog-centered">
+                <div class="modal-content p-3">
+                    <div class="modal-header">
+                        <h5 class="modal-title" id="modalSalvarLabel">Salvar Processo</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fechar"></button>
+                    </div>
+                    <div class="modal-body">
+                        <label for="nomeProcesso" class="form-label">Nome do processo</label>
+                        <input id="nomeProcesso" type="text" v-model="nomeProcesso" class="form-control"
+                            placeholder="Ex: Análise do texto 01">
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                        <button type="button" class="btn btn-success" @click="confirmarSalvar">Salvar</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- modal renomear processo -->
+        <div class="modal fade" id="modalRenomear" tabindex="-1" aria-labelledby="modalRenomearLabel"
+            aria-hidden="true">
+            <div class="modal-dialog modal-dialog-centered">
+                <div class="modal-content p-3">
+                    <div class="modal-header">
+                        <h5 class="modal-title" id="modalRenomearLabel">Renomear Processo</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fechar"></button>
+                    </div>
+                    <div class="modal-body">
+                        <label for="novoNomeProcesso" class="form-label">Novo nome do processo</label>
+                        <input id="novoNomeProcesso" type="text" v-model="novoNomeProcesso" class="form-control"
+                            placeholder="Ex: Análise do texto 01">
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                        <button type="button" class="btn btn-success" @click="confirmarRenomear">Renomear</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- modal confirmar exclusão -->
+        <div class="modal fade" id="modalExcluir" tabindex="-1" aria-labelledby="modalExcluirLabel" aria-hidden="true">
+            <div class="modal-dialog modal-dialog-centered">
+                <div class="modal-content p-3">
+                    <div class="modal-header">
+                        <h5 class="modal-title" id="modalExcluirLabel">Confirmar Exclusão</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fechar"></button>
+                    </div>
+                    <div class="modal-body">
+                        Tem certeza de que deseja excluir este processo? Essa ação não pode ser desfeita.
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                        <button type="button" class="btn btn-danger" @click="confirmarExcluir">Excluir</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- modal confirmar atualização -->
+        <div class="modal fade" id="modalAtualizar" tabindex="-1" aria-labelledby="modalAtualizarLabel"
+            aria-hidden="true">
+            <div class="modal-dialog modal-dialog-centered">
+                <div class="modal-content p-3">
+                    <div class="modal-header">
+                        <h5 class="modal-title" id="modalAtualizarLabel">Confirmar Atualização</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fechar"></button>
+                    </div>
+                    <div class="modal-body">
+                        Tem certeza de que deseja atualizar este processo? As alterações serão salvas permanentemente.
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                        <button type="button" class="btn btn-success" @click="confirmarAtualizar">Atualizar</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+    </main>
+
+    <!-- rodapé -->
+
+    <footer class="p-4 text-center text-muted">
+        © 2025 Desenvolvido por Matheus Mendes e Lincoln Maggini
+    </footer>
+
+    <!-- mensagem de erro -->
+
+    <div class="modal fade" id="popupMensagem" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content popup-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="popupTitulo">Aviso</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fechar"></button>
+                </div>
+                <div class="modal-body" id="popupMensagemTexto">
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Fechar</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://d3js.org/d3.v7.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/d3-cloud/build/d3.layout.cloud.min.js"></script>
+    <script src="assets/js/sistema.js"></script>
+</body>
+
+</html>

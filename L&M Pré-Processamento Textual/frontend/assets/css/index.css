@@ -1,0 +1,159 @@
+html,
+body {
+    background-color: #f8f9fa;
+    font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+    height: 100%;
+    margin: 0;
+    display: flex;
+    flex-direction: column;
+}
+
+main {
+    flex: 1;
+}
+
+/* cabeçalho */
+body {
+    background-color: #f0f2f5;
+}
+
+.header {
+    position: sticky;
+    top: 0;
+    z-index: 1000;
+    background-color: #fff;
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.08);
+    padding: 1rem;
+    border-bottom: 1px solid #dee2e6;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    height: 4.8125rem;
+}
+
+.header .titulo a {
+    text-decoration: none;
+    color: #343a40;
+    font-weight: 600;
+    transition: color 0.2s ease-in-out;
+}
+
+.header .titulo a:hover {
+    color: #198754;
+}
+
+.main-content {
+    padding: 1.5rem;
+    flex-grow: 1;
+}
+
+.content-box {
+    background-color: #fff;
+    border-radius: 8px;
+    padding-left: 1.5rem;
+    padding-right: 1.5rem;
+    margin-bottom: 0.8rem;
+}
+
+
+.header:not(:has(.botao-menu)) .titulo {
+    margin-left: 2.9rem;
+}
+
+
+/* menu do usuario */
+.custom-dropdown-menu {
+    font-size: 0.9rem;
+    padding: 0.5rem 0;
+    border: 1px solid #dee2e6;
+    border-radius: 6px;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
+}
+
+.custom-dropdown-menu .dropdown-item {
+    padding: 0.3rem 1rem;
+    border-bottom: 1px solid #f0f0f0;
+}
+
+.custom-dropdown-menu li:last-child .dropdown-item {
+    border-bottom: none;
+}
+
+.custom-dropdown-menu .dropdown-item:focus {
+    background-color: rgb(65, 63, 63) !important;
+    color: white !important;
+}
+
+/* conteúdo inicial */
+.conteudo-principal {
+    margin-top: 4rem;
+    text-align: center;
+}
+
+.conteudo-principal h1 {
+    font-weight: 700;
+    color: #212529;
+}
+
+.conteudo-principal p {
+    color: #6c757d;
+    max-width: 600px;
+    margin: 0 auto 2rem;
+}
+
+/* botões principais */
+.btn-custom {
+    border-radius: 25px;
+    padding: 0.6rem 1.5rem;
+    font-weight: 500;
+    transition: transform 0.15s ease-in-out;
+}
+
+.btn-custom:hover {
+    transform: translateY(-2px);
+}
+
+/* rodapé */
+footer {
+    margin-top: 4rem;
+    background-color: #ffffff;
+    padding: 1rem 0;
+    border-top: 1px solid #dee2e6;
+    text-align: center;
+    color: #6c757d;
+    font-size: 0.9rem;
+}
+
+/* popup base */
+.popup-content {
+    border-radius: 12px;
+    border: none;
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.2);
+}
+
+.popup-content .modal-header {
+    background: #0d6efd;
+    /* azul padrão */
+    color: white;
+    border-bottom: none;
+}
+
+.popup-content .modal-footer {
+    border-top: none;
+}
+
+/* sucesso */
+.popup-success .modal-header {
+    background: #198754;
+}
+
+/* erro */
+.popup-error .modal-header {
+    background: #dc3545;
+}
+
+/* aviso */
+.popup-warning .modal-header {
+    background: #fd7e14;
+    color: white;
+}
